@@ -8,7 +8,7 @@
         <div>rotation:{{modelNow.rotation}}</div>
       </div>
       <div style="margin:15px 20px;font-size: 20px;text-align: left">模型列表 </div>
-      <div @click="leftclose" style="text-align: right;margin-top: -25px;margin-right: 15px" id="leftswitch">'<<'</div>
+      <div @click="leftclose" style="text-align: right;margin-top: -25px;margin-right: 15px;cursor: pointer" id="leftswitch">'<<'</div>
       <div v-for="(item,i) in modelList" :key="item.message">
         <div class="modellisttype" @click="selectModelByList(i)">
           {{i+1}}:{{item.type}}
@@ -33,9 +33,9 @@ export default {
         modelList: [],
         modelNow:'',
         leftOpen: true,
-        flagMouseDown: false,
-        flagFocus: false,
-        focusNow: '',
+        flagMouseDown: false, // 鼠标是否被按下
+        flagFocus: false,// 目前鼠标是否接触到物体
+        focusNow: '', // 接触到的物体是哪个
     }
   },
     created(){
@@ -304,7 +304,7 @@ export default {
     height: 100vh;
     right: 0;
     top: 0;
-    background-color: white;
+    background-color: rgba(255, 255, 255, 0.5);
     box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.04);
   }
   .modellisttype{
@@ -327,9 +327,9 @@ export default {
     height: 100vh;
     left: 0;
     top: 0;
-    background-color: white;
+    background-color: rgba(255, 255, 255, 0.8);
     transition: margin-left 0.8s ease;
-    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.04);
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.04);
 
   }
   .modelattributes {
@@ -338,8 +338,8 @@ export default {
     /*height: 300px;*/
     margin-left: 320px;
     margin-top: 20px;
-    background-color: white;
-    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.04);
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.04);
     padding: 20px 30px;
     box-sizing: border-box;
 
