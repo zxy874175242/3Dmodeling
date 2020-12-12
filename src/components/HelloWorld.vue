@@ -33,11 +33,34 @@ export default {
         modelList: [],
         modelNow:'',
         leftOpen: true,
-        // flagMouseDown: false,
+        flagMouseDown: false,
+        flagFocus: false,
+        focusNow: '',
     }
   },
     created(){
+        let _this = this;
+        function onMouseDown( event ){
+            _this.flagMouseDown = true;
+        }
+        document.body.addEventListener( 'mousedown', onMouseDown);
 
+        function onMouseUp( event ){
+            _this.flagMouseDown = false;
+        }
+        document.body.addEventListener( 'mouseup', onMouseUp);
+
+        function onClickGetModel( event ){
+            if(_this.flagFocus === true){
+                // _this.modelNow = _this.focusNow;
+                let num = _this.getNumByUuid(_this.focusNow.uuid);
+                // console.log(num);
+                if(num !== -1 ){
+                    _this.modelNow = _this.modelList[num];
+                }
+            }
+        }
+        document.body.addEventListener( 'click', onClickGetModel);
     },
     mounted() {
 
@@ -49,7 +72,8 @@ export default {
         let group, lineGroup;
         let geometry, material;
         let INTERSECTED;
-        let flagMouseDown = false;
+        // let flagMouseDown = false;
+        var _this = this;
 
         // 场景、相机
         scene = new this.$THREE.Scene();
@@ -86,15 +110,7 @@ export default {
         document.body.addEventListener( 'mousemove', onMouseMove2, false );
 
 
-        function onMouseDown( event ){
-            flagMouseDown = true;
-        }
-        document.body.addEventListener( 'mousedown', onMouseDown);
 
-        function onMouseUp( event ){
-            flagMouseDown = false;
-        }
-        document.body.addEventListener( 'mouseup', onMouseUp);
 
 
         // 物体group
@@ -168,12 +184,11 @@ export default {
 
 
         // Animate loop
-        var _this = this;
         function render() {
             // console.log(flagMouseDown);
 
             // 旋转视角的时候不会触发
-            if(!flagMouseDown){
+            if(!_this.flagMouseDown){
                 // 通过摄像机和鼠标位置更新射线
                 raycaster.setFromCamera( mouse, camera );
 
@@ -183,14 +198,15 @@ export default {
                 if ( intersects.length > 0 ) {
 
                     let tmp = 0;
-                    let flag = 0;
 
                     while( intersects.length > 0 && tmp < intersects.length){
                         if(intersects[ tmp ].object.type === 'GridHelper'){
                             tmp++;
+                            _this.flagFocus = false;
                         }
                         else if(intersects[ tmp ].object.type === 'AxesHelper'){
                             tmp++;
+                            _this.flagFocus = false;
                         }
                         else{
                             if (INTERSECTED != intersects[ tmp ].object) {
@@ -198,31 +214,31 @@ export default {
                                     INTERSECTED.material.colorWrite = true ;
                                 }
                                 INTERSECTED = intersects[ tmp ].object;
+                                _this.focusNow = intersects[ tmp ].object;
                                 intersects[ tmp ].object.material.colorWrite = false ;
 
                                 document.body.style.cursor = 'pointer';
                             }
                             // console.log(INTERSECTED);
-                            flag = 1;
-                            let num = _this.getNumByUuid(INTERSECTED.uuid);
-                            // console.log(num);
-                            if(num !== -1 ){
-                                _this.modelNow = _this.modelList[num];
-                            }
+                            _this.flagFocus = true;
+
                             break;
                         }
                     }
                     // 如果全都是辅助网格
-                    if(flag === 0 && tmp === intersects.length && INTERSECTED){
+                    if(_this.flagFocus === false && tmp === intersects.length && INTERSECTED){
                         INTERSECTED.material.colorWrite = true ;
                         INTERSECTED = null;
+                        _this.focusNow = null;
                         document.body.style.cursor = '';
+                        _this.flagFocus = false;
                     }
 
 
                 } else {
                     if ( INTERSECTED ) INTERSECTED.material.colorWrite = true ;
                     INTERSECTED = null;
+                    _this.focusNow = null;
                     document.body.style.cursor = '';
                 }
             }
