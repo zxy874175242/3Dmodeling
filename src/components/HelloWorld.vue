@@ -40,7 +40,7 @@
           <div class="modellisttype-icon">
             ??
           </div>
-          <div class="modellisttype-item" @click="selectModelByList(i)">
+          <div class="modellisttype-item" @click.stop="selectModelByList(i)">
             {{i+1}}:{{item.type}}
           </div>
         </div>
@@ -57,11 +57,14 @@
 <script>
     // 鼠标控制视角变化
     import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
+    import {TransformControls} from 'three/examples/jsm/controls/TransformControls.js';
+    // import {DragControls} from 'three/examples/jsm/controls/DragControls.js';
 
     export default {
         name: 'HelloWorld',
         data() {
             return {
+                transformControl: null,
                 indexNow: 0,
                 x1: 0,
                 y1: 0,
@@ -87,6 +90,9 @@
             //     // console.log(val);
             // },
             modelNow(val, oldVal){
+
+                this.transformControl.detach(oldVal);
+                this.transformControl.attach(this.modelNow);
                 console.log(val);
                 this.x1 = this.modelNow.position.x;
                 this.y1 = this.modelNow.position.y;
@@ -114,16 +120,17 @@
 
             document.body.addEventListener('mouseup', onMouseUp);
 
+            // 鼠标点击选中物体
             function onClickGetModel(event) {
                 if (_this.flagFocus === true) {
                     // _this.modelNow = _this.focusNow;
                     let num = _this.getNumByUuid(_this.focusNow.uuid);
                     // console.log(num);
                     if (num !== -1) {
-                        _this.modelNow.material.colorWrite = true;
-                        _this.modelNow = _this.modelList[num];
-                        _this.modelNow.material.colorWrite = false;
-
+                        // _this.modelNow.material.colorWrite = true;
+                        // _this.modelNow = _this.modelList[num];
+                        // _this.modelNow.material.colorWrite = false;
+                        _this.selectModelByList(num);
                     }
                 }
             }
@@ -179,9 +186,10 @@
             document.body.addEventListener('mousemove', onMouseMove2, false);
 
 
+
+
             // 物体group
             this.groupVue = new this.$THREE.Group();
-
 
             // 立方体
             let x1 = -10, y1 = 0, z1 = 0;
@@ -208,16 +216,6 @@
                 object.position.y = y1;
                 object.position.z = z1;
 
-
-                //
-                // object.rotation.x = Math.random() * 2 * Math.PI;
-                // object.rotation.y = Math.random() * 2 * Math.PI;
-                // object.rotation.z = Math.random() * 2 * Math.PI;
-                //
-                // object.scale.x = Math.random() + 0.5;
-                // object.scale.y = Math.random() + 0.5;
-                // object.scale.z = Math.random() + 0.5;
-
                 this.groupVue.add(object);
             }
 
@@ -226,7 +224,7 @@
 
 
             // 地面
-            const helper = new this.$THREE.GridHelper(10, 10, 0x444444, 0x444444);
+            const helper = new this.$THREE.GridHelper(10, 10, 0xBDBDBD, 0xBDBDBD);
             // helper.position.y = 0.1;
             scene.add(helper);
             // 坐标轴
@@ -246,6 +244,17 @@
             // console.log(this.modelList);
             this.modelNow = this.modelList[0];
 
+            // 绑定物体拖拽事件
+            this.transformControl = new TransformControls(camera, renderer.domElement);
+            // this.transformControl.showX = false;
+            // this.transformControl.showY = false;
+            // this.transformControl.showZ = false;
+            this.transformControl.attach( this.modelNow );
+            // 防止拖动物体的时候是叫跟着一起动
+            this.transformControl.addEventListener( 'dragging-changed', function ( event ) {
+                controls.enabled = ! event.value;
+            } );
+            scene.add( _this.transformControl );
 
             // Animate loop
             function render() {
@@ -263,21 +272,35 @@
                     if (intersects.length > 0) {
                         let tmp = 0;
                         while (intersects.length > 0 && tmp < intersects.length) {
-                            if (intersects[tmp].object.type === 'GridHelper') {
+                            // ??
+                            // console.log(intersects[tmp].object);
+                            if (intersects[tmp].object.name !== "" && intersects[tmp].object.type === 'Mesh') {
+                                tmp++;
+                                _this.flagFocus = false;
+                            }
+                            else if (intersects[tmp].object.type === 'GridHelper') {
                                 tmp++;
                                 _this.flagFocus = false;
                             } else if (intersects[tmp].object.type === 'AxesHelper') {
                                 tmp++;
                                 _this.flagFocus = false;
+                            } else if (intersects[tmp].object.type === 'Line') {
+                                tmp++;
+                                _this.flagFocus = false;
+                            } else if (intersects[tmp].object.type === 'TransformControlsPlane') {
+                                tmp++;
+                                _this.flagFocus = false;
                             } else {
+                                // console.log(intersects[tmp].object.name);
                                 if (INTERSECTED != intersects[tmp].object) {
                                     if (INTERSECTED) {
                                         // 上一个命中物体的材质
-                                        INTERSECTED.material.colorWrite = true;
+                                        // INTERSECTED.material.colorWrite = true;
+                                        INTERSECTED.material.color = new _this.$THREE.Color( 'white' );
                                     }
                                     INTERSECTED = intersects[tmp].object;
                                     _this.focusNow = intersects[tmp].object;
-                                    intersects[tmp].object.material.colorWrite = false;
+                                    intersects[tmp].object.material.color = new _this.$THREE.Color( 'black' );
 
                                     document.body.style.cursor = 'pointer';
                                 }
@@ -289,14 +312,18 @@
                         }
                         // 如果全都是辅助网格
                         if (_this.flagFocus === false && tmp === intersects.length && INTERSECTED) {
-                            INTERSECTED.material.colorWrite = true;
+                            // INTERSECTED.material.colorWrite = true;
+                            INTERSECTED.material.color = new _this.$THREE.Color( 'white' );
                             INTERSECTED = null;
                             _this.focusNow = null;
                             document.body.style.cursor = '';
                             _this.flagFocus = false;
                         }
                     } else { //没有命中对象
-                        if (INTERSECTED) INTERSECTED.material.colorWrite = true;
+                        if (INTERSECTED) {
+                            INTERSECTED.material.color = new _this.$THREE.Color( 'white' );
+                            // INTERSECTED.material.colorWrite = true;
+                        }
                         INTERSECTED = null;
                         _this.focusNow = null;
                         document.body.style.cursor = '';
@@ -449,6 +476,7 @@
   .modellisttype-item:hover {
     cursor: pointer;
     background-color: whitesmoke;
+    /*background-color: #C0DBF0;*/
   }
 
   .leftbar {
