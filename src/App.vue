@@ -20,9 +20,9 @@ export default {
   color: #2c3e50;
   /* margin-top: 60px; */
 }
-    html,body{
-        height: 100%;
-        width: 100%;
-        margin: 0;
-    }
+html,body{
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
 </style>
