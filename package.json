@@ -10,6 +10,8 @@
     "build": "node build/build.js"
   },
   "dependencies": {
+    "ant-design-vue": "^1.7.3",
+    "element-ui": "^2.15.1",
     "three": "^0.123.0",
     "three-js-csg": "^72.0.0",
     "vue": "^2.5.2",

@@ -35,11 +35,12 @@
       <div v-for="(item,i) in modelList" :key="item.message">
         <!--        <i>??</i>-->
         <div class="modellisttype">
-          <div class="modellisttype-icon">
-            ??
+          <div class="modellisttype-icon" @click="visibleObj(i)">
+            <a-icon v-if="!item.visible" type="eye-invisible" />
+            <a-icon v-if="item.visible" type="eye" />
           </div>
           <div class="modellisttype-item" @click.stop="selectModelByListBtn(i)">
-            {{ i + 1 }}:{{ item.type }}
+            {{ i + 1 }}:{{ item.geometry.type }}
           </div>
         </div>
       </div>
@@ -52,14 +53,13 @@
       <button @click="addObj('cone')">addCone</button>
       <button @click="addObj('torus')">addTorus</button>
       <button @click="addObj('plane')">addPlane</button>
-      <!--      ###-->
-      <!--      - [x] 正方形-->
-      <!--      - [x] 圆形-->
-      <!--      - [x] 圆柱-->
-      <!--      - [x] 圆锥-->
-      <!--      - [x] 圆环-->
-      <!--      - [ ] 平面-->
-      <!--      - [ ] 圆-->
+
+      <div style="width:0;height:30px"></div>
+      <button @click="subtractObj">subtract</button>
+      <button @click="unionObj">union</button>
+      <button @click="intersectObj">intersect</button>
+
+
     </div>
 
   </div>
@@ -73,6 +73,7 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // import {DragControls} from 'three/examples/jsm/controls/DragControls.js';
 const ThreeBSP = require('three-js-csg/index.js')(THREE);
 
@@ -80,6 +81,11 @@ export default {
   name: 'HelloWorld',
   data() {
     return {
+      mouse: '',
+      camera: '',
+      scene: '',
+      raycaster: '',
+      INTERSECTED: '',
       selectedObjects: [],
       transformControl: null,
       indexNow: 0,
@@ -92,16 +98,21 @@ export default {
       x3: 0,
       y3: 0,
       z3: 0,
+      x1_m: 0,
+      y1_m: 0,
+      x2_m: 0,
+      y2_m: 0,
       msg: 'Welcome to Your Vue.js App',
       modelList: [],
       modelNow: {
         position: false
       }, // 选中的物体是哪个
       leftOpen: true,
-      flagMouseDown: false, // 鼠标是否被按下
+      flageIsClick: false, // 鼠标是否被按下
       flagFocus: false,// 目前鼠标是否接触到物体
       focusNow: '', // 接触到的物体是哪个
       groupVue: [],
+      outlinePass: '',
     }
   },
   watch: {
@@ -139,13 +150,17 @@ export default {
     let _this = this;
 
     function onMouseDown(event) {
-      _this.flagMouseDown = true;
+      _this.x1_m = event.clientX;
+      _this.y1_m = event.clientY;
+      document.body.style.cursor = 'move';
     }
 
     document.body.addEventListener('mousedown', onMouseDown);
 
     function onMouseUp(event) {
-      _this.flagMouseDown = false;
+      _this.x2_m = event.clientX;
+      _this.y2_m = event.clientY;
+      document.body.style.cursor = 'default';
     }
 
     document.body.addEventListener('mouseup', onMouseUp);
@@ -154,15 +169,15 @@ export default {
   mounted() {
 
     let container, stats;
-    let camera, scene, renderer;
-    let raycaster, mouse;
+    let scene, renderer;
+    // let mouse;
     let mesh, line;
     let group, lineGroup;
     let geometry, material;
-    let INTERSECTED;
-    let outlinePass,composer,renderPass;
+    // let _this.INTERSECTED;
+    let composer,renderPass;
 
-    // let flagMouseDown = false;
+    // let flageIsClick = false;
     let _this = this;
 
     // this.groupVue = group;
@@ -170,7 +185,8 @@ export default {
 
     // 场景、相机
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    _this.scene = scene;
+    _this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 
     renderer = new THREE.WebGLRenderer({
       // 抗锯齿用的
@@ -183,19 +199,19 @@ export default {
 
 
     // 相机视角控制
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const controls = new OrbitControls(_this.camera, renderer.domElement);
 
 
     // 光线投射鼠标拾取
-    raycaster = new THREE.Raycaster();
-    mouse = new THREE.Vector2();
+    _this.raycaster = new THREE.Raycaster();
+    _this.mouse = new THREE.Vector2();
 
     function onMouseMove2(event) {
       // 将鼠标位置归一化为设备坐标。x 和 y 方向的取值范围是 (-1 to +
       // alert('!!');
 
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      _this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      _this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     }
 
@@ -271,15 +287,18 @@ export default {
 
     // TODO effectPass
     composer = new EffectComposer( renderer );
-    outlinePass = new OutlinePass( new THREE.Vector2( window.innerWidth, window.innerHeight ), scene, camera , _this.selectedObjects );
-    renderPass = new RenderPass( scene, camera );
-    composer.addPass( outlinePass );
+    this.outlinePass = new OutlinePass( new THREE.Vector2( window.innerWidth, window.innerHeight ), scene, _this.camera , _this.selectedObjects );
+    this.outlinePass.visibleEdgeColor.set( 'red' );
+    this.outlinePass.hiddenEdgeColor.set( 'green' );
+
+    renderPass = new RenderPass( scene, _this.camera );
     composer.addPass( renderPass );
+    composer.addPass( this.outlinePass );
+
+    console.log(composer);
 
 
-
-
-    camera.position.z = 5;
+    _this.camera.position.z = 5;
 
 
     console.log('scene');
@@ -292,7 +311,7 @@ export default {
     // console.log(this.modelNow);
 
     // 绑定物体拖拽事件
-    this.transformControl = new TransformControls(camera, renderer.domElement);
+    this.transformControl = new TransformControls(_this.camera, renderer.domElement);
     this.transformControl.attach(this.modelNow);
     // 防止拖动物体的时候视角跟着一起动
     this.transformControl.addEventListener('dragging-changed', function (event) {
@@ -312,101 +331,25 @@ export default {
       render();
     }
 
-    // 鼠标点击选中物体
+    // TODO 鼠标点击选中物体
     function getObjNow() {
 
       // 旋转视角的时候不会触发
       // raycaster
-      if (!_this.flagMouseDown) {
-        // 通过摄像机和鼠标位置更新射线
-        raycaster.setFromCamera(mouse, camera);
+      let res = _this.getObjClick();
 
-        // 计算物体和射线的焦点
-        const intersects = raycaster.intersectObjects(scene.children, true);
-        // console.log(intersects)
-        // 排除掉辅助网格
-        if (intersects.length > 0) {
-          let tmp = 0;
-          while (intersects.length > 0 && tmp < intersects.length) {
-            // ??
-            // console.log(intersects[tmp].object);
-            if (intersects[tmp].object.name !== "" && intersects[tmp].object.type === 'Mesh') {
-              tmp++;
-              _this.flagFocus = false;
-            } else if (intersects[tmp].object.type === 'GridHelper') {
-              tmp++;
-              _this.flagFocus = false;
-            } else if (intersects[tmp].object.type === 'AxesHelper') {
-              tmp++;
-              _this.flagFocus = false;
-            } else if (intersects[tmp].object.type === 'Line') {
-              tmp++;
-              _this.flagFocus = false;
-            } else if (intersects[tmp].object.type === 'TransformControlsPlane') {
-              tmp++;
-              _this.flagFocus = false;
-            } else {
-              // console.log(intersects[tmp].object.name);
-              if (INTERSECTED != intersects[tmp].object) {
-                if (INTERSECTED) {
-                  // 上一个命中物体的材质
-                  // INTERSECTED.material.colorWrite = true;
-                  // INTERSECTED.material.color = new THREE.Color('white');
-                }
-                INTERSECTED = intersects[tmp].object;
-                _this.focusNow = intersects[tmp].object;
-                // intersects[tmp].object.material.color = new THREE.Color('black');
-
-                document.body.style.cursor = 'pointer';
-              }
-              // console.log(INTERSECTED);
-              _this.flagFocus = true;
-
-              break;
-            }
-          }
-          // 如果全都是辅助网格
-          if (_this.flagFocus === false && tmp === intersects.length && INTERSECTED) {
-            // INTERSECTED.material.colorWrite = true;
-            // INTERSECTED.material.color = new THREE.Color('white');
-            INTERSECTED = null;
-            _this.focusNow = null;
-            document.body.style.cursor = '';
-            _this.flagFocus = false;
-          }
-        } else { //没有命中对象
-          if (INTERSECTED) {
-            // INTERSECTED.material.color = new THREE.Color('white');
-            // INTERSECTED.material.colorWrite = true;
-          }
-          INTERSECTED = null;
-          _this.focusNow = null;
-          document.body.style.cursor = '';
-          _this.flagFocus = false;
-        }
-
-        if(_this.flagFocus){
-          // 上一个
-          console.log('modelNow2');
-          console.log(_this.modelNow);
-
-          // 这一个
-          let num = _this.getNumByUuid(_this.focusNow.uuid);
-          _this.selectModelByListBtn(num);
-
-
-        }
-        else {
-          _this.modelNow.material.color = new THREE.Color('white');
-          // 改变左侧样式栏样式
-          let num = _this.getNumByUuid(_this.modelNow.uuid);
-          let modelList = document.getElementsByClassName("modellisttype-item");
-          modelList[num].style.backgroundColor = 'white';
-          this.indexNow = -1;
-        }
-        _this.selectedObjects = [];
-        _this.selectedObjects.push(_this.modelNow);
-        outlinePass.selectedObjects = _this.selectedObjects;
+      // 命中
+      if(res >= 0){
+        // 调用选择方法
+        _this.selectModelByListBtn(res);
+      }
+      // 没命中
+      else {
+        _this.modelNow.material.color = new THREE.Color('white');
+        // 改变左侧样式栏样式
+        let num = _this.getNumByUuid(_this.modelNow.uuid);
+        let modelList = document.getElementsByClassName("modellisttype-item");
+        modelList[num].style.backgroundColor = 'white';
       }
     }
     document.body.addEventListener('click', getObjNow);
@@ -493,46 +436,110 @@ export default {
       console.log(this.groupVue)
 
     },
-    selectModelByListBtn(index) {
-      // 上一个
-      let lastIndex = this.indexNow;
-      let modelList = document.getElementsByClassName("modellisttype-item");
-
-      if(lastIndex !== -1){
-        modelList[lastIndex].style.backgroundColor = 'white';
+    visibleObj(index){
+      if(this.modelList[index].visible){
+        this.modelList[index].visible = false;
+      } else {
+        this.modelList[index].visible = true;
       }
-      modelList[index].style.backgroundColor = 'darkgrey';
+    },
+    subtractObj(){
+
+      // removeEventListener()
+      document.body.removeEventListener('click', getObjNow);
+      let modelA = this.modelNow;
+
+      let _this = this;
+      document.body.addEventListener('click', function f() {
+        let res = _this.getObjClick();
+        if(res >= 0){
+          let modelB = _this.modelList[res];
+
+          const sBSP = new ThreeBSP(modelA);
+          const bBSP = new ThreeBSP(modelB);
+
+          const sub = sBSP.subtract(bBSP);
+
+          const newMesh = sub.toMesh();
+          _this.groupVue.add(newMesh);
+          _this.modelList.push('');
+          _this.modelList.pop();
+
+          console.log('sub');
+          console.log(newMesh);
+
+          newMesh.material = new THREE.MeshLambertMaterial({
+            color: 0xB0D3DA,
+          });
+
+          modelA.visible = false;
+          modelB.visible = false;
+
+          let num = _this.getNumByUuid(newMesh.uuid);
+          console.log(_this.modelNow);
+          _this.selectModelByListBtn(num);
+
+          document.body.removeEventListener('click', f);
+          document.body.addEventListener('click', getObjNow);
+        }
+
+      });
+
+
+      function getObjNow() {
+
+        // 旋转视角的时候不会触发
+        // raycaster
+        let res = _this.getObjClick();
+
+        // 命中
+        if(res >= 0){
+          // 调用选择方法
+          _this.selectModelByListBtn(res);
+        }
+        // 没命中
+        else {
+          _this.modelNow.material.color = new THREE.Color('white');
+          // 改变左侧样式栏样式
+          let num = _this.getNumByUuid(_this.modelNow.uuid);
+          let modelList = document.getElementsByClassName("modellisttype-item");
+          modelList[num].style.backgroundColor = 'white';
+        }
+      }
+
+
+    },
+    unionObj(){
+
+    },
+    intersectObj(){
+
+    },
+    selectModelByListBtn(index) {
+
+      // alert(index);
+      // 上一个
+      // console.log('modelListDOM');
+      // console.log(this.modelList);
+      // console.log(this.groupVue);
+
+      let lastIndex = this.getNumByUuid(this.modelNow.uuid);
+      let modelListDOM = document.getElementsByClassName("modellisttype-item");
+      console.log(modelListDOM);
+
+      modelListDOM[lastIndex].style.backgroundColor = 'white';
+      modelListDOM[index].style.backgroundColor = 'darkgrey';
 
       this.modelNow.material.color = new THREE.Color('white');
-      this.focusNow.material.color = new THREE.Color('black');
-      // this.modelNow.material.colorWrite = true;
-      // this.modelList[index].material.colorWrite = false;
-      // this.modelNow = this.modelList[index];
-      this.indexNow = index;
-      this.modelNow = this.focusNow;
-    },
-    selectModelByList(index) {
-      let lastIndex = this.indexNow;
-      console.log('modellist');
-      console.log(this.modelList);
+      this.modelList[index].material.color = new THREE.Color('black');
 
-      // let modelList = document.getElementsByClassName("modellisttype-item");
-
-      // modelList[lastIndex].style.backgroundColor = 'white';
-      // modelList[index].style.backgroundColor = 'darkgrey';
-      // this.modelNow.material.colorWrite = true;
-      // this.modelList[index].material.colorWrite = false;
-
-      this.modelList[lastIndex].material.color = new THREE.Color('white');
-      this.modelList[lastIndex].material.colorWrite = true;
-
-      this.modelList[index].object.material.color = new THREE.Color('black');
+      this.modelNow = this.modelList[index];
 
       this.selectedObjects = [];
       this.selectedObjects.push(this.modelNow);
+      this.outlinePass.selectedObjects = this.selectedObjects;
 
-      this.modelNow = this.modelList[index];
-      this.indexNow = index;
+      // console.log(this.outlinePass);
     },
     leftclose() {
       if (this.leftOpen === false) {
@@ -560,7 +567,113 @@ export default {
         }
       })
       return res;
-    }
+    },
+    getObjClick(){
+      // 旋转视角的时候不会触发
+      // raycaster
+      let _this = this;
+      let tmp1 = _this.x2_m - _this.x1_m;
+      let tmp2 = _this.y2_m - _this.y1_m;
+      if(tmp1 > -2 && tmp1 < 2 && tmp2 > -2 && tmp2 < 2){
+        _this.flageIsClick = true;
+      }else{
+        _this.flageIsClick = false;
+      }
+
+      if (_this.flageIsClick) {
+        // 通过摄像机和鼠标位置更新射线
+        _this.raycaster.setFromCamera(_this.mouse, _this.camera);
+
+        // 计算物体和射线的焦点
+        const intersects = _this.raycaster.intersectObjects(_this.scene.children, true);
+        console.log(intersects)
+        // 排除掉辅助网格
+        if (intersects.length > 0) {
+          let tmp = 0;
+          while (intersects.length > 0 && tmp < intersects.length) {
+            // ??
+            // console.log(intersects[tmp].object);
+            if (intersects[tmp].object.name !== "" && intersects[tmp].object.type === 'Mesh') {
+              tmp++;
+              _this.flagFocus = false;
+            } else if (intersects[tmp].object.type === 'GridHelper') {
+              tmp++;
+              _this.flagFocus = false;
+            } else if (intersects[tmp].object.type === 'AxesHelper') {
+              tmp++;
+              _this.flagFocus = false;
+            } else if (intersects[tmp].object.type === 'Line') {
+              tmp++;
+              _this.flagFocus = false;
+            } else if (intersects[tmp].object.type === 'TransformControlsPlane') {
+              tmp++;
+              _this.flagFocus = false;
+              // 跳过不可见的
+            } else if (intersects[tmp].object.visible === false) {
+              tmp++;
+              _this.flagFocus = false;
+              // 跳过网格
+            } else if (intersects[tmp].object.material.wireframe === true) {
+              tmp++;
+              _this.flagFocus = false;
+            } else {
+              // console.log(intersects[tmp].object.name);
+              if (_this.INTERSECTED != intersects[tmp].object) {
+                if (_this.INTERSECTED) {
+                  // 上一个命中物体的材质
+                  // _this.INTERSECTED.material.colorWrite = true;
+                  // _this.INTERSECTED.material.color = new THREE.Color('white');
+                }
+                _this.INTERSECTED = intersects[tmp].object;
+                _this.focusNow = intersects[tmp].object;
+                // intersects[tmp].object.material.color = new THREE.Color('black');
+
+                document.body.style.cursor = 'pointer';
+              }
+              // console.log(_this.INTERSECTED);
+              _this.flagFocus = true;
+
+              break;
+            }
+          }
+          // 如果全都是辅助网格
+          if (_this.flagFocus === false && tmp === intersects.length && _this.INTERSECTED) {
+            // _this.INTERSECTED.material.colorWrite = true;
+            // _this.INTERSECTED.material.color = new THREE.Color('white');
+            _this.INTERSECTED = null;
+            _this.focusNow = null;
+            document.body.style.cursor = '';
+            _this.flagFocus = false;
+          }
+        } else { //没有命中对象
+          if (_this.INTERSECTED) {
+            // _this.INTERSECTED.material.color = new THREE.Color('white');
+            // _this.INTERSECTED.material.colorWrite = true;
+          }
+          _this.INTERSECTED = null;
+          _this.focusNow = null;
+          document.body.style.cursor = '';
+          _this.flagFocus = false;
+        }
+
+        if(_this.flagFocus){
+          // 上一个
+          // console.log('modelNow2');
+          // console.log(_this.modelNow);
+          // 这一个
+          let num = _this.getNumByUuid(_this.focusNow.uuid);
+          // 调用选择方法
+          return num;
+
+        }
+        // 没命中
+        else {
+          return -1;
+        }
+
+      }
+
+    },
   }
 }
 </script>
