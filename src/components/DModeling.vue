@@ -74,6 +74,10 @@ import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
+import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js';
+import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js';
+import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
 // import {DragControls} from 'three/examples/jsm/controls/DragControls.js';
 const ThreeBSP = require('three-js-csg/index.js')(THREE);
 
@@ -88,7 +92,7 @@ export default {
       INTERSECTED: '',
       selectedObjects: [],
       transformControl: null,
-      indexNow: 0,
+      isPick: true,
       x1: 0,
       y1: 0,
       z1: 0,
@@ -116,15 +120,24 @@ export default {
     }
   },
   watch: {
+    isPick(val,oldVal){
+      if(val){
+        this.transformControl.visible = true;
+      } else {
+        this.transformControl.visible = false;
+      }
+    },
     // focusNow(val, oldVal){
     //     // console.log(val);
     // },
     // 物体变化时，重新显示位置
     modelNow: {
       handler(val, oldVal) {
-        this.transformControl.detach(oldVal);
-        this.transformControl.attach(this.modelNow);
-        console.log(val);
+        if(val.position !== false){
+          this.transformControl.detach(oldVal);
+          this.transformControl.attach(this.modelNow);
+          console.log(val);
+        }
       },
     },
     'modelNow.position': {
@@ -147,6 +160,9 @@ export default {
     },
   },
   created() {
+
+
+
     let _this = this;
 
     function onMouseDown(event) {
@@ -163,7 +179,17 @@ export default {
       document.body.style.cursor = 'default';
     }
 
-    document.body.addEventListener('mouseup', onMouseUp);
+    document.body.addEventListener('mouseup', onMouseUp)
+
+    function pressObj(event) {
+      // const p = document.createElement("p");
+      // p.textContent = `KeyboardEvent: key='${event.key}' | code='${event.code}'`;
+      if(event.key === 'Delete'){
+        _this.deleteObj();
+      }
+    }
+
+    document.body.addEventListener("keydown", pressObj, true);
 
   },
   mounted() {
@@ -264,6 +290,19 @@ export default {
     console.log('sub');
     console.log(newMesh);
 
+    // wireframe
+    let geometryTmp = new THREE.BoxGeometry(10,10,10);
+    geometryTmp.copy(newMesh.geometry);
+
+    let wireframeMaterial2 = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      wireframe: true,
+      transparent: true
+    });
+    let wireframe = new THREE.Mesh(geometryTmp, wireframeMaterial2);
+    newMesh.add(wireframe);
+
+
     newMesh.material = new THREE.MeshLambertMaterial({
       color: 0xB0D3DA,
     });
@@ -291,9 +330,26 @@ export default {
     this.outlinePass.visibleEdgeColor.set( 'red' );
     this.outlinePass.hiddenEdgeColor.set( 'green' );
 
+    composer.setPixelRatio( 1 ); // ensure pixel ratio is always 1 for performance reasons
+    let ssaaRenderPassP = new SSAARenderPass( scene, _this.camera );
+    ssaaRenderPassP.clearColor = 0xf5f5f5;
+    ssaaRenderPassP.clearAlpha = 1.0;
+    composer.addPass( ssaaRenderPassP );
+
     renderPass = new RenderPass( scene, _this.camera );
     composer.addPass( renderPass );
     composer.addPass( this.outlinePass );
+
+    // let FXAAShaderPass = new ShaderPass(FXAAShader);
+    // FXAAShaderPass.uniforms[ 'resolution' ].value.set( 1 / window.innerWidth, 1 / window.innerHeight );
+    // composer.addPass(FXAAShaderPass);
+
+
+    // let copyPass = new ShaderPass( CopyShader );
+    // composer.addPass( copyPass );
+
+    // const pass = new SMAAPass( window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio() );
+    // composer.addPass( pass );
 
     console.log(composer);
 
@@ -333,24 +389,7 @@ export default {
 
     // TODO 鼠标点击选中物体
     function getObjNow() {
-
-      // 旋转视角的时候不会触发
-      // raycaster
-      let res = _this.getObjClick();
-
-      // 命中
-      if(res >= 0){
-        // 调用选择方法
-        _this.selectModelByListBtn(res);
-      }
-      // 没命中
-      else {
-        _this.modelNow.material.color = new THREE.Color('white');
-        // 改变左侧样式栏样式
-        let num = _this.getNumByUuid(_this.modelNow.uuid);
-        let modelList = document.getElementsByClassName("modellisttype-item");
-        modelList[num].style.backgroundColor = 'white';
-      }
+      _this.getObjNow2();
     }
     document.body.addEventListener('click', getObjNow);
 
@@ -432,8 +471,9 @@ export default {
       object.position.z = 2;
 
       this.groupVue.add(object);
+      this.selectModelByListBtn(this.modelList.length-1);
 
-      console.log(this.groupVue)
+      console.log(this.groupVue);
 
     },
     visibleObj(index){
@@ -468,6 +508,18 @@ export default {
           console.log('sub');
           console.log(newMesh);
 
+          // wireframe
+          let geometry = new THREE.BoxGeometry(10,10,10);
+          geometry.copy(newMesh.geometry);
+
+          const wireframeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            wireframe: true,
+            transparent: true
+          });
+          let wireframe = new THREE.Mesh(geometry, wireframeMaterial);
+          newMesh.add(wireframe);
+
           newMesh.material = new THREE.MeshLambertMaterial({
             color: 0xB0D3DA,
           });
@@ -488,32 +540,188 @@ export default {
 
       function getObjNow() {
 
-        // 旋转视角的时候不会触发
-        // raycaster
-        let res = _this.getObjClick();
+        _this.getObjNow2();
 
-        // 命中
-        if(res >= 0){
-          // 调用选择方法
-          _this.selectModelByListBtn(res);
-        }
-        // 没命中
-        else {
-          _this.modelNow.material.color = new THREE.Color('white');
-          // 改变左侧样式栏样式
-          let num = _this.getNumByUuid(_this.modelNow.uuid);
-          let modelList = document.getElementsByClassName("modellisttype-item");
-          modelList[num].style.backgroundColor = 'white';
-        }
+        // // 旋转视角的时候不会触发
+        // // raycaster
+        // let res = _this.getObjClick();
+        //
+        // // 命中
+        // if(res >= 0){
+        //   _this.isPick = true;
+        //   // 调用选择方法
+        //   _this.selectModelByListBtn(res);
+        // }
+        // // 没命中
+        // else if(res === -1) {
+        //   if(_this.isPick){
+        //     _this.modelNow.material.color = new THREE.Color('white');
+        //     // 改变左侧样式栏样式
+        //     let num = _this.getNumByUuid(_this.modelNow.uuid);
+        //     let modelList = document.getElementsByClassName("modellisttype-item");
+        //     modelList[num].style.backgroundColor = 'white';
+        //   }
+        //   _this.isPick = false;
+        // }
       }
 
 
     },
     unionObj(){
+      // removeEventListener()
+      document.body.removeEventListener('click', getObjNow);
+      let modelA = this.modelNow;
 
+      let _this = this;
+      document.body.addEventListener('click', function f() {
+        let res = _this.getObjClick();
+        if(res >= 0){
+          let modelB = _this.modelList[res];
+
+          const sBSP = new ThreeBSP(modelA);
+          const bBSP = new ThreeBSP(modelB);
+
+          const sub = sBSP.union(bBSP);
+
+          const newMesh = sub.toMesh();
+          _this.groupVue.add(newMesh);
+
+          console.log('sub');
+          console.log(newMesh);
+
+          // wireframe
+          let geometry = new THREE.BoxGeometry(10,10,10);
+          geometry.copy(newMesh.geometry);
+
+          const wireframeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            wireframe: true,
+            transparent: true
+          });
+          let wireframe = new THREE.Mesh(geometry, wireframeMaterial);
+          newMesh.add(wireframe);
+
+          newMesh.material = new THREE.MeshLambertMaterial({
+            color: 0xB0D3DA,
+          });
+
+          modelA.visible = false;
+          modelB.visible = false;
+
+          let num = _this.getNumByUuid(newMesh.uuid);
+          console.log(_this.modelNow);
+          _this.selectModelByListBtn(num);
+
+          document.body.removeEventListener('click', f);
+          document.body.addEventListener('click', getObjNow);
+        }
+
+      });
+
+      function getObjNow() {
+
+        _this.getObjNow2();
+
+        // // 旋转视角的时候不会触发
+        // // raycaster
+        // let res = _this.getObjClick();
+        //
+        // // 命中
+        // if(res >= 0){
+        //   _this.isPick = true;
+        //   // 调用选择方法
+        //   _this.selectModelByListBtn(res);
+        // }
+        // // 没命中
+        // else if(res === -1) {
+        //   if(_this.isPick){
+        //     _this.modelNow.material.color = new THREE.Color('white');
+        //     // 改变左侧样式栏样式
+        //     let num = _this.getNumByUuid(_this.modelNow.uuid);
+        //     let modelList = document.getElementsByClassName("modellisttype-item");
+        //     modelList[num].style.backgroundColor = 'white';
+        //   }
+        //   _this.isPick = false;
+        // }
+      }
     },
     intersectObj(){
+      // removeEventListener()
+      document.body.removeEventListener('click', getObjNow);
+      let modelA = this.modelNow;
 
+      let _this = this;
+      document.body.addEventListener('click', function f() {
+        let res = _this.getObjClick();
+        if(res >= 0){
+          let modelB = _this.modelList[res];
+
+          const sBSP = new ThreeBSP(modelA);
+          const bBSP = new ThreeBSP(modelB);
+
+          const sub = sBSP.intersect(bBSP);
+
+          const newMesh = sub.toMesh();
+          _this.groupVue.add(newMesh);
+
+          console.log('sub');
+          console.log(newMesh);
+
+          // wireframe
+          let geometry = new THREE.BoxGeometry(10,10,10);
+          geometry.copy(newMesh.geometry);
+
+          const wireframeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            wireframe: true,
+            transparent: true
+          });
+          let wireframe = new THREE.Mesh(geometry, wireframeMaterial);
+          newMesh.add(wireframe);
+
+          newMesh.material = new THREE.MeshLambertMaterial({
+            color: 0xB0D3DA,
+          });
+
+          modelA.visible = false;
+          modelB.visible = false;
+
+          let num = _this.getNumByUuid(newMesh.uuid);
+          console.log(_this.modelNow);
+          _this.selectModelByListBtn(num);
+
+          document.body.removeEventListener('click', f);
+          document.body.addEventListener('click', getObjNow);
+        }
+
+      });
+
+      function getObjNow() {
+
+        _this.getObjNow2();
+
+        // // 旋转视角的时候不会触发
+        // // raycaster
+        // let res = _this.getObjClick();
+        //
+        // // 命中
+        // if(res >= 0){
+        //   _this.isPick = true;
+        //   // 调用选择方法
+        //   _this.selectModelByListBtn(res);
+        // }
+        // // 没命中
+        // else if(res === -1) {
+        //   if(_this.isPick){
+        //     _this.modelNow.material.color = new THREE.Color('white');
+        //     // 改变左侧样式栏样式
+        //     let num = _this.getNumByUuid(_this.modelNow.uuid);
+        //     let modelList = document.getElementsByClassName("modellisttype-item");
+        //     modelList[num].style.backgroundColor = 'white';
+        //   }
+        //   _this.isPick = false;
+        // }
+      }
     },
     selectModelByListBtn(index) {
 
@@ -522,22 +730,27 @@ export default {
       // console.log('modelListDOM');
       // console.log(this.modelList);
       // console.log(this.groupVue);
+      this.$nextTick(() => {
+        console.log(this.modelNow.uuid);
+        let lastIndex = this.getNumByUuid(this.modelNow.uuid);
+        let modelListDOM = document.getElementsByClassName("modellisttype-item");
+        console.log(modelListDOM);
 
-      let lastIndex = this.getNumByUuid(this.modelNow.uuid);
-      let modelListDOM = document.getElementsByClassName("modellisttype-item");
-      console.log(modelListDOM);
+        // alert(lastIndex);
 
-      modelListDOM[lastIndex].style.backgroundColor = 'white';
-      modelListDOM[index].style.backgroundColor = 'darkgrey';
+        modelListDOM[lastIndex].style.backgroundColor = 'white';
+        modelListDOM[index].style.backgroundColor = 'darkgrey';
 
-      this.modelNow.material.color = new THREE.Color('white');
-      this.modelList[index].material.color = new THREE.Color('black');
+        this.modelNow.material.color = new THREE.Color('white');
+        this.modelList[index].material.color = new THREE.Color('black');
 
-      this.modelNow = this.modelList[index];
+        this.modelNow = this.modelList[index];
 
-      this.selectedObjects = [];
-      this.selectedObjects.push(this.modelNow);
-      this.outlinePass.selectedObjects = this.selectedObjects;
+        this.selectedObjects = [];
+        this.selectedObjects.push(this.modelNow);
+        this.outlinePass.selectedObjects = this.selectedObjects;
+
+      })
 
       // console.log(this.outlinePass);
     },
@@ -568,12 +781,52 @@ export default {
       })
       return res;
     },
+    deleteObj(){
+      let _this = this;
+      let objTmp = _this.modelNow;
+      if(_this.modelList.length > 1){
+        _this.groupVue.remove(objTmp);
+        _this.modelNow = _this.modelList[0];
+      }
+      else{
+        this.transformControl.detach(_this.modelNow);
+        _this.modelNow = {
+          position: false
+        }; // 选中的物体是哪个
+        _this.groupVue.remove(objTmp);
+      }
+    },
+    getObjNow2(){
+      // 旋转视角的时候不会触发
+      // raycaster
+      let _this = this;
+      let res = _this.getObjClick();
+      // 命中
+      if(res >= 0){
+        _this.isPick = true;
+        // 调用选择方法
+        _this.selectModelByListBtn(res);
+      }
+      // 没命中
+      else if(res === -1) {
+        if(_this.isPick){
+          _this.modelNow.material.color = new THREE.Color('white');
+          // 改变左侧样式栏样式
+          let num = _this.getNumByUuid(_this.modelNow.uuid);
+          let modelList = document.getElementsByClassName("modellisttype-item");
+          modelList[num].style.backgroundColor = 'white';
+        }
+        _this.isPick = false;
+      }
+    },
+    // 命中返回num，没命中返回-1，在视角旋转返回-2
     getObjClick(){
       // 旋转视角的时候不会触发
       // raycaster
       let _this = this;
       let tmp1 = _this.x2_m - _this.x1_m;
       let tmp2 = _this.y2_m - _this.y1_m;
+      // alert('tmp1:'+ tmp1+'; tmp2:'+tmp2);
       if(tmp1 > -2 && tmp1 < 2 && tmp2 > -2 && tmp2 < 2){
         _this.flageIsClick = true;
       }else{
@@ -672,7 +925,7 @@ export default {
         }
 
       }
-
+      return -2;
     },
   }
 }
