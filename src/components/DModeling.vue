@@ -1,7 +1,7 @@
 <template>
   <div class="layer">
     <div class="leftbar">
-      <div class="modelattributes" v-if="modelNow">
+      <div class="modelattributes" v-if="modelNow.position !== false">
 
         <div class="modelattributes-item">
           <span class="modelattributes-item-name">position:</span>
@@ -47,17 +47,262 @@
     </div>
 
     <div class="rightbar">
-      <button @click="addObj('box')">addBox</button>
-      <button @click="addObj('ball')">addBall</button>
-      <button @click="addObj('cylinder')">addCylinder</button>
-      <button @click="addObj('cone')">addCone</button>
-      <button @click="addObj('torus')">addTorus</button>
-      <button @click="addObj('plane')">addPlane</button>
-
+      <div class="typeAttribute">
+        <div style="font-size: 20px;text-align: left" @click.stop="geometryAttributeOpen = !geometryAttributeOpen">{{this.modelNowType}}</div>
+        <div class="GeometryAttribute" v-if="this.modelNowType === 'BoxGeometry' && this.geometryAttributeOpen == true">
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">width</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Box.x" :min="1" :max="10" :step="0.1"/>
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Box.x" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row>
+          </div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">height</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Box.y" :min="1" :max="10" :step="0.1"/>
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Box.y" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">depth</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Box.z" :min="1" :max="10" :step="0.1" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Box.z" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">widthSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Box.segmentX" :min="1" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Box.segmentX" :min="1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">heightSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Box.segmentY" :min="1" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Box.segmentY" :min="1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">depthSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Box.segmentZ" :min="1" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Box.segmentZ" :min="1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+        </div>
+        <div class="GeometryAttribute" v-if="this.modelNowType === 'SphereGeometry' && this.geometryAttributeOpen == true">
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">radius</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Sphere.r" :min="1" :max="10" :step="0.1"/>
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Sphere.r" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row>
+          </div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">widthSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Sphere.segmentX" :min="3" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Sphere.segmentX" :min="3" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">heightSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Sphere.segmentY" :min="2" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Sphere.segmentY" :min="2" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+        </div>
+        <div class="GeometryAttribute" v-if="this.modelNowType === 'CylinderGeometry' && this.geometryAttributeOpen == true">
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">radiusTop</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Cylinder.rT" :min="1" :max="10" :step="0.1"/>
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Cylinder.rT" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row>
+          </div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">radiusBottom</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Cylinder.rB" :min="1" :max="10" :step="0.1"/>
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Cylinder.rB" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">height</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Cylinder.h" :min="1" :max="10" :step="0.1" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Cylinder.h" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">RadialSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Cylinder.segmentR" :min="3" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Cylinder.segmentR" :min="3" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">heightSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Cylinder.segmentH" :min="1" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Cylinder.segmentH" :min="1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+        </div>
+        <div class="GeometryAttribute" v-if="this.modelNowType === 'ConeGeometry' && this.geometryAttributeOpen == true">
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">radius</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Cone.r" :min="1" :max="10" :step="0.1"/>
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Cone.r" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row>
+          </div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">height</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Cone.h" :min="1" :max="10" :step="0.1" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Cone.h" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">RadialSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Cone.segmentR" :min="3" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Cone.segmentR" :min="3" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">heightSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Cone.segmentH" :min="1" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Cone.segmentH" :min="1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+        </div>
+        <div class="GeometryAttribute" v-if="this.modelNowType === 'TorusGeometry' && this.geometryAttributeOpen == true">
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">radius</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Torus.r" :min="1" :max="10" :step="0.1"/>
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Torus.r" :min="1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row>
+          </div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">tube</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Torus.t" :min="1" :max="10" :step="0.1" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Torus.t" :min="0.1" :step="0.1" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">RadialSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Torus.segmentR" :min="2" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Torus.segmentR" :min="2" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+          <div class="GeometryAttribute-item">
+            <div style="width: 110px;text-align: left">tubularSegments</div>
+            <a-row>
+              <a-col :span="12">
+                <a-slider v-model="Torus.segmentT" :min="3" :max="20" />
+              </a-col>
+              <a-col :span="4">
+                <a-input-number v-model="Torus.segmentT" :min="3" style="marginLeft: 16px" />
+              </a-col>
+            </a-row></div>
+        </div>
+      </div>
+      <div style="margin:15px 30px;font-size: 20px;text-align: left">模型操作</div>
+      <el-button @click.stop="subtractObj">subtract</el-button>
+      <el-button @click.stop="unionObj">union</el-button>
+      <el-button @click.stop="intersectObj">intersect</el-button>
       <div style="width:0;height:30px"></div>
-      <button @click="subtractObj">subtract</button>
-      <button @click="unionObj">union</button>
-      <button @click="intersectObj">intersect</button>
+
+      <div style="margin:15px 30px;font-size: 20px;text-align: left">添加模型</div>
+      <div class="chooseBar">
+        <el-button class="chooseObj" @click.stop="addObj('box')">addBox</el-button>
+        <el-button class="chooseObj" @click.stop="addObj('ball')">addBall</el-button>
+        <el-button class="chooseObj" @click.stop="addObj('cylinder')">addCylinder</el-button>
+        <el-button class="chooseObj" @click.stop="addObj('cone')">addCone</el-button>
+        <el-button class="chooseObj" @click.stop="addObj('torus')">addTorus</el-button>
+        <el-button class="chooseObj" @click.stop="loadObj()">addObj</el-button>
+      </div>
+
+
+
 
 
     </div>
@@ -68,6 +313,8 @@
 <script>
 import * as THREE from 'three';
 // 鼠标控制视角变化
+// import { OBJLoader } from 'three/examples/js/loaders/OBJLoader.js';
+// import {OBJLoader, MTLLoader} from 'three-obj-mtl-loader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
@@ -85,6 +332,41 @@ export default {
   name: 'HelloWorld',
   data() {
     return {
+        geometryAttributeOpen: true,
+        Box: {
+          x: 1,
+          y: 1,
+          z: 1,
+          segmentX: 1,
+          segmentY: 1,
+          segmentZ: 1,
+        },
+        Cone: {
+            r: 1,
+            h: 1,
+            segmentR: 8,
+            segmentH: 1,
+        },
+        Sphere: {
+          r: 1,
+          segmentX: 8,
+          segmentY: 8,
+        },
+        Cylinder: {
+          rT: 1,
+          rB: 1,
+          h: 1,
+          segmentR: 8,
+          segmentH: 1,
+        },
+        Torus: {
+          r: 1,
+          t: 0.4,
+          segmentR: 8,
+          segmentT: 6,
+        },
+        value: 100,
+        modelNowType: 'New',
       mouse: '',
       camera: '',
       scene: '',
@@ -120,6 +402,41 @@ export default {
     }
   },
   watch: {
+      Torus: {
+          handler(val, oldVal) {
+              this.modelNow.geometry = new THREE.TorusGeometry(val.r,val.t,val.segmentR,val.segmentT);
+              this.modelNow.children[0].geometry = new THREE.TorusGeometry(val.r,val.t,val.segmentR,val.segmentT);
+          },
+          deep: true,
+      },
+      Cone: {
+          handler(val, oldVal) {
+              this.modelNow.geometry = new THREE.ConeGeometry(val.r,val.h,val.segmentR,val.segmentH);
+              this.modelNow.children[0].geometry = new THREE.ConeGeometry(val.r,val.h,val.segmentR,val.segmentH);
+          },
+          deep: true,
+      },
+      Cylinder: {
+          handler(val, oldVal) {
+              this.modelNow.geometry = new THREE.CylinderGeometry(val.rT,val.rB,val.h,val.segmentR,val.segmentH);
+              this.modelNow.children[0].geometry = new THREE.CylinderGeometry(val.rT,val.rB,val.h,val.segmentR,val.segmentH);
+          },
+          deep: true,
+      },
+      Sphere: {
+          handler(val, oldVal) {
+              this.modelNow.geometry = new THREE.SphereGeometry(val.r, val.segmentX, val.segmentY);
+              this.modelNow.children[0].geometry = new THREE.SphereGeometry(val.r, val.segmentX, val.segmentY);
+          },
+          deep: true,
+      },
+      Box: {
+          handler(val, oldVal) {
+              this.modelNow.geometry = new THREE.BoxGeometry(val.x,val.y,val.z,val.segmentX,val.segmentY,val.segmentZ);
+              this.modelNow.children[0].geometry = new THREE.BoxGeometry(val.x,val.y,val.z,val.segmentX,val.segmentY,val.segmentZ);
+          },
+          deep: true,
+    },
     isPick(val,oldVal){
       if(val){
         this.transformControl.visible = true;
@@ -133,11 +450,18 @@ export default {
     // 物体变化时，重新显示位置
     modelNow: {
       handler(val, oldVal) {
+          // console.log('watchNow',val);
+          // console.log('watchOld',oldVal);
         if(val.position !== false){
           this.transformControl.detach(oldVal);
-          this.transformControl.attach(this.modelNow);
+          this.transformControl.attach(val);
+
+          val.material.color = new THREE.Color('#66686E');
+
+          console.log(' this.transformControl',this.transformControl);
           console.log(val);
         }
+          this.modelNowType = val.geometry.type;
       },
     },
     'modelNow.position': {
@@ -171,7 +495,7 @@ export default {
       document.body.style.cursor = 'move';
     }
 
-    document.body.addEventListener('mousedown', onMouseDown);
+    document.body.addEventListener('pointerdown', onMouseDown);
 
     function onMouseUp(event) {
       _this.x2_m = event.clientX;
@@ -179,7 +503,7 @@ export default {
       document.body.style.cursor = 'default';
     }
 
-    document.body.addEventListener('mouseup', onMouseUp)
+    document.body.addEventListener('pointerup', onMouseUp)
 
     function pressObj(event) {
       // const p = document.createElement("p");
@@ -304,7 +628,7 @@ export default {
 
 
     newMesh.material = new THREE.MeshLambertMaterial({
-      color: 0xB0D3DA,
+      color: 0xFFFFFF,
     });
 
     scene.add(this.groupVue); // 默认（0,0,0）坐标
@@ -324,6 +648,8 @@ export default {
     light.position.set(1, 1, 1).normalize();
     scene.add(light);
 
+    // let loader = new THREE.OBJLoader();
+
     // TODO effectPass
     composer = new EffectComposer( renderer );
     this.outlinePass = new OutlinePass( new THREE.Vector2( window.innerWidth, window.innerHeight ), scene, _this.camera , _this.selectedObjects );
@@ -335,6 +661,8 @@ export default {
     ssaaRenderPassP.clearColor = 0xf5f5f5;
     ssaaRenderPassP.clearAlpha = 1.0;
     composer.addPass( ssaaRenderPassP );
+      // let copyPass = new ShaderPass( CopyShader );
+      // composer.addPass( copyPass );
 
     renderPass = new RenderPass( scene, _this.camera );
     composer.addPass( renderPass );
@@ -345,8 +673,7 @@ export default {
     // composer.addPass(FXAAShaderPass);
 
 
-    // let copyPass = new ShaderPass( CopyShader );
-    // composer.addPass( copyPass );
+
 
     // const pass = new SMAAPass( window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio() );
     // composer.addPass( pass );
@@ -424,23 +751,23 @@ export default {
       let geometry;
       switch (a) {
         case 'box': {
-          geometry = new THREE.BoxGeometry();
+          geometry = new THREE.BoxGeometry(1,1,1,1,1,1);
           break;
         }
         case 'ball': {
-          geometry = new THREE.SphereGeometry(1, 32, 32);
+          geometry = new THREE.SphereGeometry(1, 8, 8);
           break;
         }
         case 'cylinder': {
-          geometry = new THREE.CylinderGeometry();
+          geometry = new THREE.CylinderGeometry(1,1,1,8,1);
           break;
         }
         case 'cone': {
-          geometry = new THREE.ConeGeometry();
+          geometry = new THREE.ConeGeometry(1,1,8,1);
           break;
         }
         case 'torus': {
-          geometry = new THREE.TorusGeometry();
+          geometry = new THREE.TorusGeometry(1,0.4,8,6);
           break;
         }
         case 'plane': {
@@ -471,7 +798,9 @@ export default {
       object.position.z = 2;
 
       this.groupVue.add(object);
+      this.isPick = true;
       this.selectModelByListBtn(this.modelList.length-1);
+      this.transformControl.attach(this.modelNow);
 
       console.log(this.groupVue);
 
@@ -742,7 +1071,7 @@ export default {
         modelListDOM[index].style.backgroundColor = 'darkgrey';
 
         this.modelNow.material.color = new THREE.Color('white');
-        this.modelList[index].material.color = new THREE.Color('black');
+        this.modelList[index].material.color = new THREE.Color('#66686E');
 
         this.modelNow = this.modelList[index];
 
@@ -927,6 +1256,63 @@ export default {
       }
       return -2;
     },
+      // loadObj() {
+      //   let _this = this;
+      //   let object;
+      //
+      //     // manager
+      //
+      //     function loadModel() {
+      //
+      //         object.traverse( function ( child ) {
+      //
+      //             if ( child.isMesh ) child.material.map = texture;
+      //
+      //         } );
+      //
+      //         object.position.y = - 95;
+      //         _this.scene.add( object );
+      //
+      //     }
+      //
+      //     const manager = new THREE.LoadingManager( loadModel );
+      //
+      //     manager.onProgress = function ( item, loaded, total ) {
+      //
+      //         console.log( item, loaded, total );
+      //
+      //     };
+      //
+      //     // texture
+      //
+      //     const textureLoader = new THREE.TextureLoader( manager );
+      //     const texture = textureLoader.load( '/static/models/uv_grid_opengl.jpg' );
+      //
+      //     // model
+      //
+      //     function onProgress( xhr ) {
+      //
+      //         if ( xhr.lengthComputable ) {
+      //
+      //             const percentComplete = xhr.loaded / xhr.total * 100;
+      //             console.log( 'model ' + Math.round( percentComplete, 2 ) + '% downloaded' );
+      //
+      //         }
+      //
+      //     }
+      //
+      //     function onError() {}
+      //
+      //
+      //     const loader = new OBJLoader( manager );
+      //     loader.load( '/static/models/male02.obj', function ( obj ) {
+      //
+      //         object = obj;
+      //
+      //     }, onProgress, onError );
+      //
+
+      // }
   }
 }
 </script>
@@ -951,6 +1337,21 @@ input {
   top: 0;
   background-color: rgba(255, 255, 255, 0.5);
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.04);
+}
+
+.chooseBar{
+  height: 600px;
+  width: 400px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.chooseObj{
+  width: 160px;
+  height: 160px;
+  margin: 10px;
 }
 
 .modellisttype {
@@ -1051,4 +1452,51 @@ input {
   text-align: left;
 }
 
+  .typeAttribute{
+    position: absolute;
+    width: 400px;
+    height: auto;
+    margin-left: -420px;
+    margin-top: 20px;
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.04);
+    padding: 20px 30px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    transition: height 0.3s ease;
+  }
+
+  .GeometryAttribute{
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .GeometryAttribute-item{
+    width: 100%;
+    height: 35px;
+    /*background-color: #16426e;*/
+    margin: 5px 0px;
+    display: flex;
+    align-items: center;
+
+  }
+
+.code-box-demo .ant-slider {
+  margin-bottom: 16px;
+}
+  .ant-row {
+    width: 240px;
+    margin-right: 0;
+  }
+  .ant-input-number {
+    width: 60px;
+  }
+  .ant-col-12 {
+    width: 65%;
+  }
 </style>
